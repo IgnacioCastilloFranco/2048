@@ -1,0 +1,264 @@
+
+const gridContainer = document.querySelector('.grid-container');/*find the first element in the DOM that matches the CSS selector '.grid-container' and stores a reference to it in the constant gridContainer. The dot prefix indicates a class selector, so the browser searches for an element with class="grid-container". This element will serve as the container for the game grid where the tiles will be displayed and manipulated during gameplay.*/
+const scoreDisplay = document.getElementById('score');
+const bestScoreDisplay = document.getElementById('best-score');
+const restartBtn = document.getElementById('restart-btn');
+
+
+let grid = [];
+let score = 0;
+const gridSize = 4;     /*dimensions of the game grid (#rows = #columns)*/
+const TILE_SIZE = 100;  /*in pixels, the width and height of each tile in the grid*/
+const GAP = 6;          /*in pixels, the spacing between tiles in the grid*/
+let infinite = false;   /*flag to enable or disable infinite play mode*/
+let mergedTiles = [];   /*array to keep track of tiles that have merged during a move*/
+
+function startGame() {
+  grid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));/*initializes a 2D array representing the game board. The outer Array(size).fill() creates an array with 'size' number of undefined elements. The map function then replaces each undefined element with a new array (also of length 'size') filled with zeros. The result is a 4x4 grid (if size is 4) where each cell starts with a value of 0, indicating that the cell is empty at the beginning of the game.*/
+  score = 0;
+  initGrid();
+  updateScore();
+  addNewTile();
+  addNewTile();
+  drawGrid();
+}
+
+function initGrid() {
+  gridContainer.innerHTML = ''; /*clears all HTML content inside the DOM element referenced by gridContainer by setting its innerHTML to an empty string. removes all child nodes (elements, text nodes, comment nodes) immediately from the DOM, which triggers layout/repaint work in the browser.*/
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize; col++) {
+      const cell = document.createElement('div');/*At this point the element exists only in JavaScript — it has no parent in the document tree until you append it with gridContainer.appendChild(cell). document.createElement('div') returns a proper DOM node (an HTMLDivElement) that you can configure: add classes, set dataset values, attach event listeners, set ARIA attributes for accessibility, or populate content. */
+      cell.dataset.r = row;/*creates/updates a data attribute on the element so the element carries its grid coordinates as metadata that other code or CSS selectors can read.*/
+      cell.dataset.c = col;
+      const translateX = col * (TILE_SIZE + GAP); /*compute the pixel offsets for a tile’s position in the grid*/
+      const translateY = row * (TILE_SIZE + GAP);
+      cell.style.setProperty('--tx', `${translateX}px`);/* set CSS custom properties (variables) named --tx on the clicked/animated element by writing it to the element’s inline style. The DOM API call cell.style.setProperty('--tx', ${translateX}px) stores the literal string value (e.g., "24px") so CSS can later read it with var(--tx). Because the value includes the unit, the CSS that uses these variables (for example translate(var(--tx), var(--ty))) receives a ready-to-use length*/
+      cell.style.setProperty('--ty', `${translateY}px`);/*CSS custom properties (often called CSS variables) let you define a name (starting with --) that holds a CSS value and then reuse that value elsewhere with the var() function. Custom properties live in the browser’s cascade and can change at runtime, inherit, and be overridden per selector or per element. JavaScript only updates the variables while CSS handles transitions/animations.--tx and --ty are set on each tile element so keyframes or transitions read per-tile offsets*/
+      /*adding a set of Tailwind CSS utility classes to the newly created tile element, configuring its layout, appearance, and animation behavior in one concise operation.*/
+      cell.classList.add(
+        'absolute','flex','items-center','justify-center',/*layout classes: position the tile absolutely inside its positioning context and make the tile a flex container that centers its content both vertically and horizontally*/
+        'text-2xl','font-bold','rounded','text-slate-900',/*The typographic and shape classes: set a large, bold number and give the tile rounded corners for a polished look.*/
+        'transition-transform','duration-400','ease-in-out',/*The animation classes: tell Tailwind to animate only the transform property, using an ease-in-out timing function and a 400ms duration*/
+        'bg-slate-600'/*provides a neutral dark fill for empty tiles*/
+      );
+      cell.style.width = TILE_SIZE + 'px';
+      cell.style.height = TILE_SIZE + 'px';
+      cell.style.transform = `translate(var(--tx), var(--ty))`;/*sets the element's inline transform property (so that takes precedence over any style properety defined in a stylesheet) to a CSS translate function that reads its X and Y offsets from the custom properties --tx and --ty. Because those variables were previously written to the element's inline style (via setProperty), the browser resolves var(--tx) and var(--ty) to the pixel values stored there and positions the tile accordingly.*/
+      gridContainer.appendChild(cell);
+    }
+  }
+}
+
+function updateScore() {
+  scoreDisplay.textContent = score;
+  if (score > parseInt(bestScoreDisplay.textContent)) {
+    bestScoreDisplay.textContent = score;
+  }
+}
+
+function addNewTile() {
+  const emptyCells = [];
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize; col++) {
+      if (grid[row][col] === 0) emptyCells.push({ r: row, c: col });
+    }
+  }
+  if (emptyCells.length === 0) return;
+  const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+  grid[r][c] = Math.random() < 0.6 ? 2 : 4;
+}
+
+function drawGrid() {
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize; col++) {
+      const value = grid[row][col];
+      if (value == 2048 && infinite == false)  {
+        document.getElementById('win').classList.remove('hidden');
+        document.getElementById('continue-btn').addEventListener('click', () => {
+          document.getElementById('win').classList.add('hidden');
+          infinite = true;
+        });
+      }
+      const cell = gridContainer.querySelector(`[data-r="${row}"][data-c="${col}"]`);      
+      const isMerged = mergedTiles.some(t => t.r === row && t.c === col);        
+      const currentValue = cell.textContent;
+      const currentIsYellow = cell.classList.contains('bg-amber-400');      
+      const newValue = value === 0 ? '' : value.toString();
+      const shouldBeYellow = value !== 0;
+      
+      if (isMerged || currentValue !== newValue || currentIsYellow !== shouldBeYellow) {
+        
+        if (currentValue !== newValue) {
+          cell.textContent = newValue;
+        }
+        
+        if (currentIsYellow !== shouldBeYellow) {
+          if (shouldBeYellow) {
+            cell.classList.add('bg-amber-400');
+            cell.classList.remove('bg-slate-600');
+          } else {
+            cell.classList.remove('bg-amber-400');
+            cell.classList.add('bg-slate-600');
+          }
+        }
+      }
+      
+      if (isMerged) {
+        cell.classList.remove('scale-up');
+        requestAnimationFrame(() => {
+          cell.classList.add('scale-up');
+          setTimeout(() => cell.classList.remove('scale-up'), 300);
+        });
+      }
+    }
+  }
+  mergedTiles = [];
+}
+
+function handleInput(event) {
+  let moved = false;
+  switch (event.key) {
+    case 'ArrowLeft':
+      moved = moveLeft();
+      break;
+    case 'ArrowRight':
+      moved = moveRight();
+      break;
+    case 'ArrowUp':
+      moved = moveUp();
+      break;
+    case 'ArrowDown':
+      moved = moveDown();
+      break;
+  }  
+  if (!moreMoves()) {
+    document.getElementById('game-over').classList.remove('hidden');
+  }
+  if (moved) {
+    addNewTile(true); 
+    drawGrid();  
+  }
+  if (!moreMoves()) {
+    document.getElementById('game-over').classList.remove('hidden');
+  }
+}
+
+function moreMoves() {
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (grid[r][c] === 0) return true;
+      if (c < gridSize - 2 && grid[r][c] === grid[r][c + 1]) return true; 
+      if (r < gridSize - 2 && grid[r][c] === grid[r + 1][c]) return true;
+    }
+  }
+  return false;
+}
+
+function moveLeft() {
+  let moved = false;
+
+  for (let r = 0; r < gridSize; r++) {
+    let newRow = grid[r].filter(x => x !== 0);
+    for (let i = 0; i < newRow.length - 1; i++) {
+      if (newRow[i] === newRow[i + 1]) {
+        newRow[i] *= 2;            
+        score += newRow[i]; 
+		mergedTiles.push({ r, c: i }); 
+        newRow.splice(i + 1, 1);   
+      }
+    }
+    while (newRow.length < gridSize) newRow.push(0);
+    if (newRow.toString() !== grid[r].toString()) moved = true;
+    grid[r] = newRow;
+  }
+
+  updateScore();
+  return moved;
+}
+
+function moveRight() {
+  let moved = false;
+  for (let r = 0; r < gridSize; r++) {
+    let newRow = grid[r].filter(x => x !== 0);
+	for (let i = newRow.length -1; i >= 0; i--) {
+		if (newRow[i] == newRow[i - 1]) {
+			newRow[i] *= 2;
+			score += newRow[i];
+			let finalIndex = gridSize - newRow.length + i;
+			mergedTiles.push({ r, c: finalIndex });
+			newRow.splice(i - 1, 1);
+		}
+	}
+    while (newRow.length < gridSize) newRow.unshift(0);
+    if (newRow.toString() !== grid[r].toString()) moved = true;
+    grid[r] = newRow;
+  }
+  updateScore();
+  return moved;
+}
+
+function moveUp() {
+  let moved = false;
+
+  for (let c = 0; c < gridSize; c++) {
+    let newCol = grid.map(row => row[c]).filter(x => x !== 0);
+   
+    for (let i = 0; i < newCol.length - 1; i++) {
+      if (newCol[i] === newCol[i + 1]) {
+        newCol[i] *= 2;
+        score += newCol[i];
+       let finalRow = i;
+        mergedTiles.push({ r: finalRow, c });
+        newCol.splice(i + 1, 1);
+      }
+    }
+
+    while (newCol.length < gridSize) newCol.push(0); 
+    for (let r = 0; r < gridSize; r++) {
+      if (grid[r][c] !== newCol[r]) moved = true;
+      grid[r][c] = newCol[r];
+    }
+  }
+
+  updateScore();
+  return moved;
+}
+
+function moveDown() {
+  let moved = false;
+
+  for (let c = 0; c < gridSize; c++) {
+    let newCol = grid.map(row => row[c]).filter(x => x !== 0);
+
+    for (let i = newCol.length - 1; i > 0; i--) {
+      if (newCol[i] === newCol[i - 1]) {
+        newCol[i] *= 2;
+        score += newCol[i];
+       let finalRow = gridSize - newCol.length + i;
+        mergedTiles.push({ r: finalRow, c });
+        newCol.splice(i - 1, 1);
+      }
+    }
+
+    while (newCol.length < gridSize) newCol.unshift(0); 
+    for (let r = 0; r < gridSize; r++) {
+      if (grid[r][c] !== newCol[r]) moved = true;
+      grid[r][c] = newCol[r];
+
+    }
+  }
+
+  updateScore();
+  return moved;
+}
+
+restartBtn.addEventListener('click', () => {
+  startGame();
+  document.getElementById('game-over').classList.add('hidden');
+  document.getElementById('win').classList.add('hidden');
+  infinite = false;
+});
+
+document.addEventListener('keydown', handleInput);
+
+startGame();

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><!--this tag is near the top of the <head> so the browser can apply it before rendering.It is telling the browser how to set the page's viewport on mobile devices. these settings ensure that fonts, images, and layout defined in CSS appear at the intended size on phones and tablets without the browser applying a desktop-style scale -->
+    <title>2048 Game</title>
+    <script src="https://cdn.tailwindcss.com"></script><!--Loads Tailwind via CDN (Content Delivery Network) for styling. https://cdn.tailwindcss.com responds with a warning cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation  -->
+    <!-- @keyframes refers to the CSS @keyframes rule, which defines a named sequence of intermediate steps for an animation. Inside an @keyframes block you list percentage stops that describe how properties should change over time; the browser interpolates values between those stops to produce a smooth animation. At 0% and 100% the element is at its original scale (scale(1)) and translated by the values stored in the CSS custom properties --tx and --ty (declarated and assigned in the js file); at 50% the element is translated by the same offsets but scaled up to 1.3 (scale(1.3)), producing a pulse or pop effect mid-animation  -->
+    <style>@keyframes scaleUp { 
+      0% { transform: translate(var(--tx), var(--ty)) scale(1); }
+      50% { transform: translate(var(--tx), var(--ty)) scale(1.3); }
+      100% { transform: translate(var(--tx), var(--ty)) scale(1); }
+    }
+    .scale-up {/*This CSS rule defines a class called .scale-up that applies the scaleUp keyframe animation to any element it's added to. The animation shorthand sets following properties: the animation name (scaleUp, referencing the @keyframes block defined 5 lines above), the duration (0.3s or 300 milliseconds), the timing function (ease, which starts slow, speeds up, then slows down), and the fill mode (forwards. tells the browser to retain the final keyframe's computed values after the animation ends. Without it, the element would snap back to its pre-animation state once the animation completes).*/
+      animation: scaleUp 0.3s ease forwards;
+    }
+    .neon-text {
+      color: #22d3ee;
+      text-shadow: 
+        0 0 10px #22d3ee,
+        0 0 20px #22d3ee,
+        0 0 40px #0891b2,
+        0 0 80px #0891b2;
+    }</style>
+  </head>
+  <body class="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white"><!--set of Tailwind CSS utility classes that establish the page's overall layout and background-->
+    
+    <!-- Grid + Best score side by side -->
+    <div class="flex items-start gap-6">
+      <!-- Grid column with Title, Score, Grid, and Restart -->
+      <div class="flex flex-col items-center">
+        <h1 class="text-7xl font-bold mb-20 neon-text">2048</h1>
+        <!-- Score centered above grid -->
+        <div class="mb-4 text-3xl font-bold">
+          <span>Score: <span id="score">0</span></span>
+        </div>
+        <!--Tailwind utility classes. The relative class is important because the tile elements inside are positioned with absolute, so they need a positioned ancestor to anchor their offsets-->
+        <div class="grid-container relative bg-slate-700 rounded-lg" style="width: 446px; height: 446px; padding: 8px;"></div><!--inline styles for explicit dimensions-->
+        
+        <button id="restart-btn" class="mt-6 px-6 py-2 bg-indigo-600 text-white text-xl font-bold rounded hover:bg-indigo-500 border border-indigo-400">
+          Restart
+        </button>
+      </div>
+      
+      <!-- Best score on the right -->
+      <div class="flex flex-col items-center justify-center bg-slate-800 rounded-lg p-4 h-24">
+        <span class="text-lg text-slate-400">Best</span>
+        <span id="best-score" class="text-3xl font-bold text-amber-400">0</span>
+      </div>
+    </div>
+  
+    <div id="game-over" class="hidden absolute z-20 bg-red-900 bg-opacity-90 flex items-center justify-center rounded-lg"
+      style="width: 446px; height: 446px; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+      <h2 class="text-5xl font-bold text-red-200">Game Over!</h2>
+    </div>
+
+    <div id="win" class="hidden absolute z-20 bg-emerald-900 bg-opacity-90 flex flex-col items-center justify-center rounded-lg"
+        style="width: 446px; height: 446px; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+      <h2 class="text-4xl font-bold text-emerald-200 text-center">YOU WIN !!!<br>Congratulations!</h2>
+      <div class="text-7xl my-4">🎉 🥇</div>
+      <button id="continue-btn" class="mt-4 px-4 py-2 bg-slate-800 text-emerald-400 font-bold rounded hover:bg-slate-700 border border-emerald-500">
+        Continue Playing
+      </button>
+    </div>
+
+    <script src="2048Game.js"></script>
+  </body>
+</html>
