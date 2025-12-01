@@ -4,8 +4,12 @@ const scoreDisplay = document.getElementById('score');
 const bestScoreDisplay = document.getElementById('best-score');
 const restartBtn = document.getElementById('restart-btn');
 
-
-let grid = [];
+/*
+flow is:
+1)Update data → Move functions modify grid[][] (the model)
+2)Then update UI → drawGrid() reads from grid[][] and updates the DOM (the view)
+*/
+let grid = [];          /*2D array representing the game board, where each element holds the value of a tile (0 for empty). This is the source of truth—it gets updated FIRST during the move functions (moveLeft, moveRight, etc.) with the new tile positions and merged values, WHILE the cell DOM elements still contain the old visual state until drawGrid() is called to sync them.*/
 let score = 0;
 const gridSize = 4;     /*dimensions of the game grid (#rows = #columns)*/
 const TILE_SIZE = 100;  /*in pixels, the width and height of each tile in the grid*/
@@ -68,39 +72,69 @@ function addNewTile() {
   grid[r][c] = Math.random() < 0.6 ? 2 : 4;
 }
 
-function drawGrid() {
+/*Maps tile values to background colors, getting progressively darker as values increase*/
+function getTileColor(value) {
+  const colorMap = {
+    0: 'bg-slate-600',      // empty tile
+    2: 'bg-amber-100',      // lightest
+    4: 'bg-amber-200',
+    8: 'bg-amber-300',
+    16: 'bg-amber-400',
+    32: 'bg-amber-500',
+    64: 'bg-amber-600',
+    128: 'bg-orange-500',
+    256: 'bg-orange-600',
+    512: 'bg-orange-700',
+    1024: 'bg-red-500',
+    2048: 'bg-red-600',
+  };
+  // For values beyond 2048, use the darkest color
+  return colorMap[value] || 'bg-red-700';
+}
+
+/*Returns appropriate text color based on tile value for better contrast*/
+function getTileTextColor(value) {
+  // Darker text for light backgrounds, lighter text for dark backgrounds
+  if (value <= 4) return 'text-slate-900';
+  if (value <= 64) return 'text-slate-800';
+  return 'text-white';
+}
+
+function drawGrid() {/*syncs the visual representation of the grid in the DOM with the underlying data model stored in the grid 2D array. It iterates over each cell in the grid, checks its value in the data model, and updates the corresponding DOM element to reflect that value. Additionally, it handles visual effects for merged tiles and checks for win conditions.*/
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
-      const value = grid[row][col];
-      if (value == 2048 && infinite == false)  {
+      const actualValue = grid[row][col];
+      if (actualValue == 2048 && infinite == false){ /*check for win condition*/
         document.getElementById('win').classList.remove('hidden');
         document.getElementById('continue-btn').addEventListener('click', () => {
           document.getElementById('win').classList.add('hidden');
           infinite = true;
         });
       }
-      const cell = gridContainer.querySelector(`[data-r="${row}"][data-c="${col}"]`);      
-      const isMerged = mergedTiles.some(t => t.r === row && t.c === col);        
-      const currentValue = cell.textContent;
-      const currentIsYellow = cell.classList.contains('bg-amber-400');      
-      const newValue = value === 0 ? '' : value.toString();
-      const shouldBeYellow = value !== 0;
+      const cell = gridContainer.querySelector(`[data-r="${row}"][data-c="${col}"]`);/*selects the specific tile element in the gridContainer that corresponds to the current row and column indices by using a CSS attribute selector that matches the data-r and data-c attributes set during grid initialization.*/
+      const isMerged = mergedTiles.some(t => t.r === row && t.c === col);/*tile just merged and should receive an animation.*/
+      const displayedValue = cell.textContent;
+      const newValue = actualValue === 0 ? '' : actualValue.toString();
+      const newBgColor = getTileColor(actualValue);
+      const newTextColor = getTileTextColor(actualValue);
       
-      if (isMerged || currentValue !== newValue || currentIsYellow !== shouldBeYellow) {
-        
-        if (currentValue !== newValue) {
+      if (isMerged || displayedValue !== newValue) {/*only update the tile if something has changed to avoid unnecessary DOM writes and reflows, which can impact performance.*/
+        if (displayedValue !== newValue) {
           cell.textContent = newValue;
         }
         
-        if (currentIsYellow !== shouldBeYellow) {
-          if (shouldBeYellow) {
-            cell.classList.add('bg-amber-400');
-            cell.classList.remove('bg-slate-600');
-          } else {
-            cell.classList.remove('bg-amber-400');
-            cell.classList.add('bg-slate-600');
-          }
-        }
+        // Remove all possible background color classes
+        cell.classList.remove(
+          'bg-slate-600', 'bg-amber-100', 'bg-amber-200', 'bg-amber-300',
+          'bg-amber-400', 'bg-amber-500', 'bg-amber-600', 'bg-orange-500',
+          'bg-orange-600', 'bg-orange-700', 'bg-red-500', 'bg-red-600', 'bg-red-700'
+        );
+        // Remove text color classes
+        cell.classList.remove('text-slate-900', 'text-slate-800', 'text-white');
+        
+        // Add the appropriate colors for this value
+        cell.classList.add(newBgColor);
+        cell.classList.add(newTextColor);
       }
       
       if (isMerged) {
@@ -112,7 +146,7 @@ function drawGrid() {
       }
     }
   }
-  mergedTiles = [];
+  mergedTiles = [];/*clear the mergedTiles array after processing to prepare for the next move.*/
 }
 
 function handleInput(event) {
