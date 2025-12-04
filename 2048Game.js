@@ -137,12 +137,63 @@ function drawGrid() {/*syncs the visual representation of the grid in the DOM wi
         cell.classList.add(newTextColor);
       }
       
-      if (isMerged) {
-        cell.classList.remove('scale-up');
-        requestAnimationFrame(() => {
-          cell.classList.add('scale-up');
-          setTimeout(() => cell.classList.remove('scale-up'), 300);
-        });
+      if (isMerged) { /*trigger the scale-up animation by toggling the scale-up class. The requestAnimationFrame ensures the class removal is processed before re-adding it, allowing the CSS animation to play correctly.*/
+            // remove any previous animation state so we can retrigger it
+            cell.classList.remove('scale-up');
+            // Clear any previously scheduled timeout for this element
+            if (cell._scaleUpTimeoutId) {// _scaleUpTimeoutId is used to hold a fallback timer that will remove the scale-up class after the animation duration, so clearing it prevents the old timer from firing later and interfering with a newly started animation.
+              clearTimeout(cell._scaleUpTimeoutId);
+              cell._scaleUpTimeoutId = null;
+            }
+
+            requestAnimationFrame(() => {//tells the browser you wish to perform an animation frame request and call this user-supplied callback function before the next repaint (schedules only one single call to the callback function). The frequency of calls to the callback function will generally match the display refresh rate. The most common refresh rate is 60 Hz
+              // Add the class to start the animation
+              cell.classList.add('scale-up');
+
+              // Helper: parse CSS duration strings (e.g. "300ms", "0.3s") and return ms
+              function parseDurationToMs(dur) {
+                if (!dur) return 0;
+                // If multiple durations are provided (comma-separated), take the first
+                const first = dur.split(',')[0].trim();
+                if (first.endsWith('ms')) return parseFloat(first);
+                if (first.endsWith('s')) return parseFloat(first) * 1000;
+                // Fallback: try number parse (assume ms)
+                const n = parseFloat(first);
+                return Number.isFinite(n) ? n : 0;
+              }
+
+              // Get computed animation duration, fall back to transition duration
+              const cs = getComputedStyle(cell);// retrieves the final computed styles applied to the cell element after all CSS rules, inline styles, and inherited styles have been applied. This allows JavaScript to read the actual values the browser is using for rendering, which is essential for timing animations correctly. this function returns a live read-only CSSStyleProperties object containing the resolved values of all CSS properties of an element, after applying active stylesheets and resolving any computation those values may contain.
+              let durationMs = parseDurationToMs(cs.animationDuration);//animation-duration for a cell comes from the CSS rule in index.html (the .scale-up { animation: scaleUp 0.3s ease forwards; } declaration). the browser applies that duration when the .scale-up class is added to the element at runtime.
+              if (!durationMs) durationMs = parseDurationToMs(cs.transitionDuration);//safety fallback 
+
+              // If still zero, use a sensible default constant (keeps backward compatibility)
+              const DEFAULT_SCALE_UP_MS = 300;
+              if (!durationMs) durationMs = DEFAULT_SCALE_UP_MS;
+
+              // Use animationend as the primary way to cleanup the class after the scale-up effect finishes. Also set a timeout
+              // as a fallback in case the event doesn't fire for whatever reason.
+              const onEnd = () => {
+                cell.classList.remove('scale-up');
+                cell.removeEventListener('animationend', onEnd);
+                if (cell._scaleUpTimeoutId) {
+                  clearTimeout(cell._scaleUpTimeoutId);
+                  cell._scaleUpTimeoutId = null;
+                }
+              };
+
+              cell.addEventListener('animationend', onEnd, { once: true });// onEnd will run when a CSS animation on the cell element finishes
+
+              // Fallback timeout: remove class after duration
+              cell._scaleUpTimeoutId = setTimeout(() => {
+                cell.classList.remove('scale-up');
+                if (cell._scaleUpTimeoutId) {
+                  clearTimeout(cell._scaleUpTimeoutId);
+                  cell._scaleUpTimeoutId = null;
+                }
+                cell.removeEventListener('animationend', onEnd);
+              }, durationMs + 20); // small buffer
+            });
       }
     }
   }
@@ -178,11 +229,11 @@ function handleInput(event) {
 }
 
 function moreMoves() {
-  for (let r = 0; r < gridSize; r++) {
-    for (let c = 0; c < gridSize; c++) {
-      if (grid[r][c] === 0) return true;
-      if (c < gridSize - 2 && grid[r][c] === grid[r][c + 1]) return true; 
-      if (r < gridSize - 2 && grid[r][c] === grid[r + 1][c]) return true;
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize; col++) {
+      if (grid[row][col] === 0) return true;
+      if (col < gridSize - 1 && grid[row][col] === grid[row][col + 1]) return true; 
+      if (row < gridSize - 1 && grid[row][col] === grid[row + 1][col]) return true;
     }
   }
   return false;
