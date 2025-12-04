@@ -1,4 +1,4 @@
-# 2048 Game
+# 2048 Game 
 
 A browser-based implementation of the classic 2048 puzzle game, built with vanilla JavaScript and styled with Tailwind CSS.
 
@@ -25,14 +25,32 @@ python -m http.server 8000
 # Then open http://localhost:8000 in your browser
 ```
 
-## 📁 Project Structure
+### Option 3:  🐳 Docker
 
+This project is static and can be served from any static HTTP server. The repository includes a Dockerfile that uses nginx to serve the site.
+
+Build the image locally:
+
+```powershell
+docker build -t 2048-game .
 ```
-firehorse966/
-├── index.html      # Main HTML file with layout and styles
-├── 2048Game.js     # Game logic and DOM manipulation
-└── README.md       # This file
+
+Run the container (maps port 8080 on your machine to port 80 in the container):
+
+```powershell
+docker run --rm -p 8080:80 --name 2048-web 2048-game
 ```
+
+Open http://localhost:8080 in your browser.
+
+Alternatively, use docker-compose:
+
+```powershell
+docker-compose up --build
+```
+
+Notes:
+- `.dockerignore` is included to keep the build context small.
 
 ## ✨ Features
 
