@@ -242,41 +242,41 @@ function moreMoves() {
 function moveLeft() {
   let moved = false;
 
-  for (let r = 0; r < gridSize; r++) {
-    let newRow = grid[r].filter(x => x !== 0);
+  for (let row = 0; row < gridSize; row++) {
+    let newRow = grid[row].filter(x => x !== 0);//create a new array newRow that contains only the non-zero values from the current row of the grid. This effectively simulates sliding all tiles to the left by removing any gaps (zeros) between them.
     for (let i = 0; i < newRow.length - 1; i++) {
       if (newRow[i] === newRow[i + 1]) {
         newRow[i] *= 2;            
         score += newRow[i]; 
-		mergedTiles.push({ r, c: i }); 
-        newRow.splice(i + 1, 1);   
+		    mergedTiles.push({ r: row, c: i }); 
+        newRow.splice(i + 1, 1); //remove the merged tile from the array. splice removes elements in place (shifting later elements left and reducing the array length)  
       }
     }
-    while (newRow.length < gridSize) newRow.push(0);
-    if (newRow.toString() !== grid[r].toString()) moved = true;
-    grid[r] = newRow;
+    while (newRow.length < gridSize) newRow.push(0);//fill the rest of the row with zeros to maintain the grid size
+    if (newRow.toString() !== grid[row].toString()) moved = true; //compare the newRow with the original row in the grid. If they differ, it means a move or merge occurred, so we set moved to true.
+    grid[row] = newRow;
   }
-
   updateScore();
   return moved;
 }
 
 function moveRight() {
   let moved = false;
-  for (let r = 0; r < gridSize; r++) {
-    let newRow = grid[r].filter(x => x !== 0);
-	for (let i = newRow.length -1; i >= 0; i--) {
-		if (newRow[i] == newRow[i - 1]) {
-			newRow[i] *= 2;
-			score += newRow[i];
-			let finalIndex = gridSize - newRow.length + i;
-			mergedTiles.push({ r, c: finalIndex });
-			newRow.splice(i - 1, 1);
-		}
-	}
-    while (newRow.length < gridSize) newRow.unshift(0);
-    if (newRow.toString() !== grid[r].toString()) moved = true;
-    grid[r] = newRow;
+  for (let row = 0; row < gridSize; row++) {
+    let newRow = grid[row].filter(x => x !== 0);
+    for (let i = newRow.length - 1; i > 0; i--) {
+      if (newRow[i] === newRow[i - 1]) {
+        newRow[i] *= 2;
+        score += newRow[i];
+        let finalIndex = gridSize - newRow.length + i;
+        mergedTiles.push({ r: row, c: finalIndex });
+        newRow.splice(i - 1, 1);
+        i--;
+      }
+    }
+    while (newRow.length < gridSize) newRow.unshift(0);//prepends zeros to the beginning of the array until its length equals gridSize. Each call to unshift inserts a 0 at index 0 and shifts the existing elements right, so the non‑zero tiles end up aligned to the right 
+    if (newRow.toString() !== grid[row].toString()) moved = true;
+    grid[row] = newRow;
   }
   updateScore();
   return moved;
@@ -284,55 +284,46 @@ function moveRight() {
 
 function moveUp() {
   let moved = false;
-
-  for (let c = 0; c < gridSize; c++) {
-    let newCol = grid.map(row => row[c]).filter(x => x !== 0);
-   
+  for (let col = 0; col < gridSize; col++) {
+    let newCol = grid.map(row => row[col]).filter(x => x !== 0);
     for (let i = 0; i < newCol.length - 1; i++) {
       if (newCol[i] === newCol[i + 1]) {
         newCol[i] *= 2;
         score += newCol[i];
-       let finalRow = i;
-        mergedTiles.push({ r: finalRow, c });
+        mergedTiles.push({ r: i, c: col });
         newCol.splice(i + 1, 1);
       }
     }
-
     while (newCol.length < gridSize) newCol.push(0); 
     for (let r = 0; r < gridSize; r++) {
-      if (grid[r][c] !== newCol[r]) moved = true;
-      grid[r][c] = newCol[r];
+      if (grid[r][col] !== newCol[r]) moved = true;
+      grid[r][col] = newCol[r];
     }
   }
-
   updateScore();
   return moved;
 }
 
 function moveDown() {
   let moved = false;
-
   for (let c = 0; c < gridSize; c++) {
     let newCol = grid.map(row => row[c]).filter(x => x !== 0);
-
     for (let i = newCol.length - 1; i > 0; i--) {
       if (newCol[i] === newCol[i - 1]) {
         newCol[i] *= 2;
         score += newCol[i];
-       let finalRow = gridSize - newCol.length + i;
+        let finalRow = gridSize - newCol.length + i;
         mergedTiles.push({ r: finalRow, c });
         newCol.splice(i - 1, 1);
+        i--;
       }
     }
-
     while (newCol.length < gridSize) newCol.unshift(0); 
     for (let r = 0; r < gridSize; r++) {
       if (grid[r][c] !== newCol[r]) moved = true;
       grid[r][c] = newCol[r];
-
     }
   }
-
   updateScore();
   return moved;
 }
