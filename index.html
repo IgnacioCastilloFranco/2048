@@ -2,67 +2,144 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"><!--this tag is near the top of the <head> so the browser can apply it before rendering.It is telling the browser how to set the page's viewport on mobile devices. these settings ensure that fonts, images, and layout defined in CSS appear at the intended size on phones and tablets without the browser applying a desktop-style scale -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2048 Game</title>
-    <script src="https://cdn.tailwindcss.com"></script><!--Loads Tailwind via CDN (Content Delivery Network) for styling. https://cdn.tailwindcss.com responds with a warning cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation  -->
-    <!-- @keyframes refers to the CSS @keyframes rule, which defines a named sequence of intermediate steps for an animation. CSS keyframe animations describe multi-step sequences (0% → 50% → 100%) and can run without a preceding property change. They’re better for complex, time-based effects or non-trivial sequences. Inside an @keyframes block you list percentage stops that describe how properties should change over time; the browser interpolates values between those stops to produce a smooth animation. At 0% and 100% the element is at its original scale (scale(1)) and translated by the values stored in the CSS custom properties --tx and --ty (declarated and assigned in the js file); at 50% the element is translated by the same offsets but scaled up to 1.3 (scale(1.3)), producing a pulse or pop effect mid-animation  -->
-    <style>@keyframes scaleUp { 
-      0% { transform: translate(var(--tx), var(--ty)) scale(1); }
-      50% { transform: translate(var(--tx), var(--ty)) scale(1.3); }
-      100% { transform: translate(var(--tx), var(--ty)) scale(1); }
-    }
-    .scale-up {/*This CSS rule defines a class called .scale-up that applies the scaleUp keyframe animation to any element it's added to. The animation shorthand sets following properties: the animation name (scaleUp, referencing the @keyframes block defined 5 lines above), the duration (0.3s or 300 milliseconds), the timing function (ease, which starts slow, speeds up, then slows down), and the fill mode (forwards. tells the browser to retain the final keyframe's computed values after the animation ends. Without it, the element would snap back to its pre-animation state once the animation completes).*/
-      animation: scaleUp 0.3s ease forwards;
-    }
-    .neon-text {
-      color: #22d3ee;
-      text-shadow: 
-        0 0 10px #22d3ee,
-        0 0 20px #22d3ee,
-        0 0 40px #0891b2,
-        0 0 80px #0891b2;
-    }</style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes scaleUp { 
+        0% { transform: translate(var(--tx), var(--ty)) scale(1); }
+        50% { transform: translate(var(--tx), var(--ty)) scale(1.3); }
+        100% { transform: translate(var(--tx), var(--ty)) scale(1); }
+      }
+      .scale-up {
+        animation: scaleUp 0.3s ease forwards;
+      }
+      .neon-text {
+        color: #22d3ee;
+        text-shadow: 
+          0 0 10px #22d3ee,
+          0 0 20px #22d3ee,
+          0 0 40px #0891b2,
+          0 0 80px #0891b2;
+      }
+      
+      /* Desktop defaults */
+      .grid-container {
+        width: 446px;
+        height: 446px;
+        padding: 8px;
+        touch-action: none;
+      }
+      .overlay-box {
+        width: 446px;
+        height: 446px;
+      }
+      
+      /* Mobile layout */
+      @media (max-width: 500px) {
+        .grid-container {
+          width: calc(100vw - 32px);
+          height: calc(100vw - 32px);
+        }
+        .overlay-box {
+          width: calc(100vw - 32px);
+          height: calc(100vw - 32px);
+        }
+        .game-title {
+          font-size: 2rem !important;
+          margin-bottom: 0 !important;
+        }
+        .header-row {
+          flex-direction: row !important;
+          flex-wrap: wrap !important;
+          justify-content: center !important;
+          gap: 0.75rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        .score-box {
+          padding: 0.5rem 0.75rem !important;
+          min-width: auto !important;
+        }
+        .score-box .label {
+          font-size: 0.7rem !important;
+        }
+        .score-box .value {
+          font-size: 1.1rem !important;
+        }
+        .restart-btn {
+          padding: 0.4rem 1rem !important;
+          font-size: 0.9rem !important;
+        }
+      }
+    </style>
   </head>
-  <body class="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white"><!--set of Tailwind CSS utility classes that establish the page's overall layout and background-->
+  <body class="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-4">
     
-    <!-- Grid + Best score side by side -->
-    <div class="flex items-start gap-6">
-      <!-- Grid column with Title, Score, Grid, and Restart -->
-      <div class="flex flex-col items-center">
-        <h1 class="text-7xl font-bold mb-20 neon-text">2048</h1>
-        <!-- Score centered above grid -->
-        <div class="mb-4 text-3xl font-bold">
-          <span>Score: <span id="score">0</span></span>
-        </div>
-        <!--Tailwind utility classes. The relative class is important because the tile elements inside are positioned with absolute, so they need a positioned ancestor to anchor their offsets-->
-        <div class="grid-container relative bg-slate-700 rounded-lg" style="width: 446px; height: 446px; padding: 8px;"></div><!--inline styles for explicit dimensions-->
-        
-        <button id="restart-btn" class="mt-6 px-6 py-2 bg-indigo-600 text-white text-xl font-bold rounded hover:bg-indigo-500 border border-indigo-400">
-          Restart
-        </button>
+    <!-- Header with title, scores, and restart -->
+    <div class="header-row flex items-center gap-4 mb-6">
+      <h1 class="game-title text-5xl font-bold neon-text">2048</h1>
+      
+      <div class="score-box flex flex-col items-center justify-center bg-slate-800 rounded-lg p-3 min-w-[80px]">
+        <span class="label text-sm text-slate-400">Score</span>
+        <span class="value text-2xl font-bold text-white" id="score">0</span>
       </div>
       
-      <!-- Best score on the right -->
-      <div class="flex flex-col items-center justify-center bg-slate-800 rounded-lg p-4 h-24">
-        <span class="text-lg text-slate-400">Best</span>
-        <span id="best-score" class="text-3xl font-bold text-amber-400">0</span>
+      <div class="score-box flex flex-col items-center justify-center bg-slate-800 rounded-lg p-3 min-w-[80px]">
+        <span class="label text-sm text-slate-400">Best</span>
+        <span class="value text-2xl font-bold text-amber-400" id="best-score">0</span>
       </div>
+      
+      <button id="restart-btn" class="restart-btn px-4 py-2 bg-indigo-600 text-white text-lg font-bold rounded hover:bg-indigo-500 border border-indigo-400">
+        Restart
+      </button>
     </div>
+    
+    <!-- Game grid -->
+    <div class="grid-container relative bg-slate-700 rounded-lg"></div>
   
-    <div id="game-over" class="hidden absolute z-20 bg-red-900 bg-opacity-90 flex items-center justify-center rounded-lg"
-      style="width: 446px; height: 446px; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-      <h2 class="text-5xl font-bold text-red-200">Game Over!</h2>
+    <div id="game-over" class="overlay-box hidden fixed z-20 bg-red-900 bg-opacity-90 flex items-center justify-center rounded-lg"
+      style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+      <h2 class="text-3xl sm:text-5xl font-bold text-red-200 text-center px-4">Game Over!</h2>
     </div>
 
-    <div id="win" class="hidden absolute z-20 bg-emerald-900 bg-opacity-90 flex flex-col items-center justify-center rounded-lg"
-        style="width: 446px; height: 446px; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-      <h2 class="text-4xl font-bold text-emerald-200 text-center">YOU WIN !!!<br>Congratulations!</h2>
-      <div class="text-7xl my-4">🎉 🥇</div>
+    <div id="win" class="overlay-box hidden fixed z-20 bg-emerald-900 bg-opacity-90 flex flex-col items-center justify-center rounded-lg"
+        style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+      <h2 class="text-2xl sm:text-4xl font-bold text-emerald-200 text-center px-4">YOU WIN !!!<br>Congratulations!</h2>
+      <div class="text-5xl sm:text-7xl my-4">🎉 🥇</div>
       <button id="continue-btn" class="mt-4 px-4 py-2 bg-slate-800 text-emerald-400 font-bold rounded hover:bg-slate-700 border border-emerald-500">
         Continue Playing
       </button>
     </div>
 
     <script src="2048Game.js"></script>
+    <script>
+      // Touch swipe support for mobile
+      let touchStartX = 0;
+      let touchStartY = 0;
+      const gridEl = document.querySelector('.grid-container');
+
+      gridEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      gridEl.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+        const minSwipe = 50;
+
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+          if (Math.abs(diffX) > minSwipe) {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: diffX > 0 ? 'ArrowRight' : 'ArrowLeft' }));
+          }
+        } else {
+          if (Math.abs(diffY) > minSwipe) {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: diffY > 0 ? 'ArrowDown' : 'ArrowUp' }));
+          }
+        }
+      }, { passive: true });
+    </script>
   </body>
 </html>
